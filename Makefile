@@ -4,13 +4,15 @@ FLAGS := -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 LFLAGS := -ffreestanding -O2 -nostdlib -lgcc
 TARGET := kernel
 SDIR := src
+ODIR := build
 SOURCES := $(shell find $(SDIR) -name "*.c")
 OBJECTS := $(SOURCES:.c=.o)
 
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS) boot.o
-	$(CC) -T linker.ld -o $@.bin $^ $(LFLAGS)
+	@mkdir -p $(ODIR)
+	$(CC) -T linker.ld -o $(ODIR)/$@.bin $^ $(LFLAGS)
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(FLAGS)
@@ -18,10 +20,13 @@ $(TARGET): $(OBJECTS) boot.o
 boot.o:
 	$(AS) boot.s -o boot.o
 
-iso:
+iso: $(TARGET)
 	mkdir -p iso/boot/grub
-	cp $(TARGET).bin iso/grub/$(TARGET).bin
+	cp $(ODIR)/$(TARGET).bin iso/grub/$(TARGET).bin
 	cp grub.cfg iso/grub/grub.cfg
-	grub-mkrescue -o $(TARGET).iso iso
+	grub-mkrescue -o $(ODIR)/$(TARGET).iso iso
 	rm -r iso
 
+clean:
+	find ./ -type f -name "*.o" -exec rm {} \;
+	rm -r $(ODIR)
